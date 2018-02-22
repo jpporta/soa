@@ -41,6 +41,7 @@
 #include <stdio.h>		/* for printf() */
 #include <sys/types.h>		/* for wait() */
 #include <sys/wait.h>		/* for wait() */
+#include <stdlib.h> 		/* for exit() */
 /*
  * Pergunta 1: o que o compilador gcc faz com o arquivo .h, cujo nome aparece após o include?
     R: ele adiciona os cabeçalhos do arquivo no programa através de um pré-processamento, gerando um arquivo intermediario com a extensão .i
@@ -85,6 +86,12 @@
 #define MICRO_PER_SECOND	1000000
 
 /*
+ * NO_OF_TESTS numero de teste a ser feito em uma só execucao
+ */
+#define NO_OF_TESTS 5
+
+
+/*
  * Programa Principal. Contem tanto o codigo para o processo pai como
  * o codigo dos futuros filhos
  */
@@ -102,7 +109,6 @@ int main( int argc, char *argv[] )
 	 * start_time e stop_time conterao o valor de tempo antes e depois
 	 * que as trocas de contexto comecem
          */
-
 	struct timeval start_time;
 	struct timeval stop_time;
 
@@ -110,86 +116,100 @@ int main( int argc, char *argv[] )
        * Outras variaveis importantes
        */
 
+			// variaveis para argumentos do terminal
+			int sleepTime = SLEEP_TIME;
+			int noInteractions = NO_OF_ITERATIONS;
+			int noChildren = NO_OF_CHILDREN;
+
       float drift;
       int count;
       int child_no;
       pid_t rtn;
 
+	//printf("ID Filho, Desvio Absoluto, Desvio Medio\n");
+
+			for(int x = 1; x < argc; x++){
+				if(argv[x][1] == 's'){ // Sleep Time
+				}
+				else if(argv[x][1] == 'i'){ // noInteractions
+					noInteractions = atoi(&argv[x][2]);
+				}
+				else if(argv[x][1] == 'c'){ // NO_OF_CHILDREN
+					noChildren = atoi(&argv[x][2]);
+				}
+			}
+
 	/*
 	 * Criacao dos processos filhos
 	 */
 
-	rtn = (pid_t)1;
-	for( count = 0; count < NO_OF_CHILDREN; count++ ) {
-		if( rtn != 0 ) {
-			rtn = fork();
-		} else {
-			break;
-		}
-	}
-
-
-	/*
-	 * Verifica-se rtn para determinar se o processo eh pai ou filho
-	 */
-
-	if( rtn == 0 ) {
-
-	/*
-         * Portanto, sou filho. Faco coisas de filho.
-         */
-
-		child_no = count;
-
-		/*
-		 * Primeiro, obtenho o tempo inicial.
-		 */
-		gettimeofday( &start_time, NULL );
-
-
-		/*
-		 * Este loop ocasiona a minha dormencia, de acordo com
-		 * SLEEP_TIME, tantas vezes quanto NO_OF_ITERATIONS
-		 */
-		for( count = 0; count < NO_OF_ITERATIONS; count++ ) {
-			usleep(SLEEP_TIME);
+	for(int i = 0; i < NO_OF_TESTS; i++){
+		rtn = (pid_t)1;
+		for( count = 0; count < noChildren; count++ ) {
+			if( rtn != 0 ) {
+				rtn = fork();
+			} else {
+				break;
+			}
 		}
 
-		/*
-		 * Paraobter o tempo final
-		 */
-		gettimeofday( &stop_time, NULL );
 
 		/*
-		 * Calcula-se o desvio
+		 * Verifica-se rtn para determinar se o processo eh pai ou filho
 		 */
-		drift = (float)(stop_time.tv_sec  - start_time.tv_sec);
-		drift += (stop_time.tv_usec - start_time.tv_usec)/(float)MICRO_PER_SECOND;
+
+		if( rtn == 0 ) {
 
 		/*
-		 * Exibe os resultados
-		 */
-		printf("Filho #%d -- desvio total: %.3f -- desvio medio: %.10f\n",
-			child_no, drift - NO_OF_ITERATIONS*SLEEP_TIME/MICRO_PER_SECOND,
-			(drift - NO_OF_ITERATIONS*SLEEP_TIME/MICRO_PER_SECOND)/NO_OF_ITERATIONS);
+	         * Portanto, sou filho. Faco coisas de filho.
+	         */
 
-		/*
-		 * Pergunta 5: Qual a relação: entre SLEEP_TIME e o desvio, nenhuma, direta
-		 * ou indiretamente proporcional?
-            R: indiretamente.
-		 */
-        exit(0);
-	}
+			child_no = count;
+
+			/*
+			 * Primeiro, obtenho o tempo inicial.
+			 */
+			gettimeofday( &start_time, NULL );
 
 
-	else {
-		/*
-		 * Sou pai, aguardo o termino dos filhos
-		 */
-		for( count = 0; count > NO_OF_CHILDREN; count++ ) {
-			wait(NULL);
+			/*
+			 * Este loop ocasiona a minha dormencia, de acordo com
+			 * SLEEP_TIME, tantas vezes quanto NO_OF_ITERATIONS
+			 */
+			for( count = 0; count < noInteractions; count++ ) {
+				usleep(sleepTime);
+			}
+
+			/*
+			 * Paraobter o tempo final
+			 */
+			gettimeofday( &stop_time, NULL );
+
+			/*
+			 * Calcula-se o desvio
+			 */
+			drift = (float)(stop_time.tv_sec  - start_time.tv_sec);
+			drift += (stop_time.tv_usec - start_time.tv_usec)/(float)MICRO_PER_SECOND;
+
+			/*
+			 * Exibe os resultados
+			 */
+			printf("%d,%.3f,%.10f\n",
+				child_no, drift - noInteractions*sleepTime/MICRO_PER_SECOND,
+				(drift - noInteractions*sleepTime/MICRO_PER_SECOND)/noInteractions);
+
+			/*
+			 * Pergunta 5: Qual a relação: entre SLEEP_TIME e o desvio, nenhuma, direta
+			 * ou indiretamente proporcional?
+	            R: indiretamente.
+			 */
+	        exit(0);
 		}
-	}
 
+			/*
+			 * Sou pai, aguardo o termino dos filhos
+			 */
+				wait(NULL);
+		}
 	exit(0);
 }

@@ -1,10 +1,13 @@
+# all:
+# 	gcc -Wall q.o -o Exercicio1
+# q.o: gcc -Wall
 all : Exercicio1
 
 Exercicio1 : Exercicio1.o
 	gcc -o Exercicio1 Exercicio1.o
 
-Exercicio1.o : Exercicio1.c
-	gcc -c Exercicio1.c
+Exercicio1.o : q.c
+	gcc -c q.c
 
 clean :
-	rm Exercicio1 *.o
+	rm q *.o
